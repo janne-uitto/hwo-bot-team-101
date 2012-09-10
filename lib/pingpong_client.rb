@@ -2,6 +2,8 @@ require 'socket'
 require 'rubygems'
 require 'json'
 require 'fileutils'
+require 'launchy'
+
 
 module Pingpong
   class Client
@@ -16,18 +18,23 @@ module Pingpong
       tcp.puts join_message(player_name)
       react_to_messages_from_server tcp
     end
-
+	
     def react_to_messages_from_server(tcp)
       while json = tcp.gets
         message = JSON.parse(json)
         case message['msgType']
           when 'joined'
             puts "Game visualization url #{message['data']}"
+			Launchy.open("#{message['data']}")
           when 'gameStarted'
             puts '... game on!'
           when 'gameIsOn'
-            puts "Challenge from server: #{json}"
-            tcp.puts movement_message(-1.0)
+            #puts "\nChallenge from server: #{json}\n"
+            if message['data']['ball']['pos']['y'] < message['data']['left']['y']
+				tcp.puts movement_message(-1.0)
+			else
+				tcp.puts movement_message(1.0)
+			end
         end
       end
     end
