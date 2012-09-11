@@ -34,26 +34,26 @@ module Pingpong
             puts '... game on!'
           when 'gameIsOn'
             #puts "\nChallenge from server: #{json}\n"
-			puts @@speed
-            if (message['data']['ball']['pos']['y']) < message['data']['left']['y']
+			#puts @@speed
+            if (message['data']['ball']['pos']['y']) < (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
 				if(@@speed != -1.0)
-					if(countmessages(message['data']['time'])) then 
+					if(countmessages(message['data']['time'])) 
 						puts "Up"
 						tcp.puts movement_message(-1.0)
 						@@speed = -1.0
 					end
 				end
-			elsif message['data']['ball']['pos']['y']  > (message['data']['left']['y'] + message['data']['conf']['paddleHeight'])
+			elsif (message['data']['ball']['pos']['y'])  > (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
 				if(@@speed != 1.0)
-					if(countmessages(message['data']['time'])) then 
+					if(countmessages(message['data']['time'])) 
 						puts "Down"
 						tcp.puts movement_message(1.0)
 						@@speed = 1.0
 					end
 				end
 			else
-				if(@@speed != 0)
-					if(countmessages(message['data']['time'])) then 
+				if(@@speed != 0.0)
+					if(countmessages(message['data']['time'])) 
 						puts "Stay"
 						tcp.puts movement_message(0)
 						@@speed = 0
@@ -62,6 +62,7 @@ module Pingpong
 			end
 		else
 			puts "Undefined message"
+			@@speed = 0.001
 			react_to_messages_from_server tcp
         end
       end
@@ -80,16 +81,19 @@ module Pingpong
 		if @@messagecounter[0] == 0
 			for i in 1..10 #tässä siirretään kaikkia taulukon arvoja yhdellä vasemmalle
 				@@messagecounter[i-1] = @@messagecounter[i]
-				#puts @@messagecounter[i-1]
+				puts @@messagecounter[i-1]
 			end
+			puts "Count messages true < 10"
 			return true
-		elsif @@messagecounter[10] < @@messagecounter[0] + 1000
+		elsif @@messagecounter[10] > @@messagecounter[0] + 1000
 			for i in 1..10 #tässä siirretään kaikkia taulukon arvoja yhdellä vasemmalle
 				@@messagecounter[i-1] = @@messagecounter[i]
-				#puts @@messagecounter[i-1]
+				puts @@messagecounter[i-1]
 			end
+			puts "Count messages true"
 			return true
 		else
+			puts "Count messages FALSE"
 			return false
 		end
 	end	
