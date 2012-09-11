@@ -7,11 +7,15 @@ require 'launchy'
 
 module Pingpong
   class Client
-    def initialize(player_name, server_host, server_port)
+    @@messagecounter = [0,0,0,0,0,0,0,0,0,0,0]
+	@@speed = 0
+	
+	
+	def initialize(player_name, server_host, server_port)
       tcp = TCPSocket.open(server_host, server_port)
       play(player_name, tcp)
     end
-
+	
     private
 
     def play(player_name, tcp)
@@ -30,11 +34,35 @@ module Pingpong
             puts '... game on!'
           when 'gameIsOn'
             #puts "\nChallenge from server: #{json}\n"
-            if message['data']['ball']['pos']['y'] < message['data']['left']['y']
-				tcp.puts movement_message(-1.0)
+			puts @@speed
+            if (message['data']['ball']['pos']['y']) < message['data']['left']['y']
+				if(@@speed != -1.0)
+					if(countmessages(message['data']['time'])) then 
+						puts "Up"
+						tcp.puts movement_message(-1.0)
+						@@speed = -1.0
+					end
+				end
+			elsif message['data']['ball']['pos']['y']  > (message['data']['left']['y'] + message['data']['conf']['paddleHeight'])
+				if(@@speed != 1.0)
+					if(countmessages(message['data']['time'])) then 
+						puts "Down"
+						tcp.puts movement_message(1.0)
+						@@speed = 1.0
+					end
+				end
 			else
-				tcp.puts movement_message(1.0)
+				if(@@speed != 0)
+					if(countmessages(message['data']['time'])) then 
+						puts "Stay"
+						tcp.puts movement_message(0)
+						@@speed = 0
+					end
+				end
 			end
+		else
+			puts "Undefined message"
+			react_to_messages_from_server tcp
         end
       end
     end
@@ -44,8 +72,27 @@ module Pingpong
     end
 
     def movement_message(delta)
-      %Q!{"msgType":"changeDir","data":#{delta}}!
+	  %Q!{"msgType":"changeDir","data":#{delta}}!
     end
+	
+	def countmessages(timestamp)
+		@@messagecounter[10] = timestamp
+		if @@messagecounter[0] == 0
+			for i in 1..10 #t‰ss‰ siirret‰‰n kaikkia taulukon arvoja yhdell‰ vasemmalle
+				@@messagecounter[i-1] = @@messagecounter[i]
+				#puts @@messagecounter[i-1]
+			end
+			return true
+		elsif @@messagecounter[10] < @@messagecounter[0] + 1000
+			for i in 1..10 #t‰ss‰ siirret‰‰n kaikkia taulukon arvoja yhdell‰ vasemmalle
+				@@messagecounter[i-1] = @@messagecounter[i]
+				#puts @@messagecounter[i-1]
+			end
+			return true
+		else
+			return false
+		end
+	end	
   end
 end
 
