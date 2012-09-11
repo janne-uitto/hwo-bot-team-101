@@ -9,7 +9,7 @@ module Pingpong
     @@messagecounter = [0,0,0,0,0,0,0,0,0,0,0]
 	@@speed = 0
 	@@prevBallX = 0;
-	
+	Coordinates = Struct.new(:x,:y)
 	def initialize(player_name, server_host, server_port)
       tcp = TCPSocket.open(server_host, server_port)
       play(player_name, tcp)
@@ -23,7 +23,8 @@ module Pingpong
     end
 	
     def react_to_messages_from_server(tcp)
-      while json = tcp.gets
+      @target = 240
+	  while json = tcp.gets
         message = JSON.parse(json)
         case message['msgType']
           when 'joined'
@@ -36,14 +37,23 @@ module Pingpong
 			#puts @@speed
 			moveThreshold = 10
 			if(directionIsLeft(message['data']['ball']['pos']['x']))
-				## direction to you
-				if (message['data']['ball']['pos']['y']) < (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
-					moveUp(message, tcp)
-				elsif (message['data']['ball']['pos']['y']) > (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
-					moveDown(message, tcp)
-				else
-					moveStay(message, tcp)
-				end
+			  ## direction to you
+		      if message['data']['ball']['pos']['x'] > 100
+			    @target = calculate_path(tcp)
+			  end
+			  #if (message['data']['ball']['pos']['y']) < (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
+				#moveUp(message, tcp)
+			  #elsif (message['data']['ball']['pos']['y']) > (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
+				#moveDown(message, tcp)
+			  #else
+				#moveStay(message, tcp)
+			  if @target < (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
+				moveUp(message, tcp)
+			  elsif @target > (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])
+				moveDown(message, tcp)
+			  elsif (@target == (message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y'])) || (@target == (message['data']['conf']['paddleHeight'] / 2 - message['data']['left']['y']))
+				moveStay(message, tcp)
+			  end
 			else
 				## direction away from me
 				if ((message['data']['conf']['paddleHeight'] / 2 + message['data']['left']['y']) > (message['data']['conf']['maxHeight'] / 2 + moveThreshold))
@@ -95,6 +105,33 @@ module Pingpong
 		end
 	end
 	
+	def calculate_path(tcp)
+	  @points = []
+	  3.times do |num|
+		json = tcp.gets
+		message = JSON.parse(json)
+		if (message['msgType'] = 'gameIsOn')
+		  @@coord = Coordinates.new(0,0)
+		  @@coord.x = message['data']['ball']['pos']['x'] if message['msgType'] = 'gameIsOn'
+	      @@coord.y = message['data']['ball']['pos']['y'] if message['msgType'] = 'gameIsOn'
+		  @points[num] = @@coord
+		end
+	  end
+	  delta_x = @points[0].x - @points[1].x
+	  delta_y = @points[0].y - @points[1].y
+	  extrapolate = -(((delta_y*@points[0].x)/delta_x)-@points[0].y)
+	  
+	  #puts extrapolate
+	  if extrapolate < 0
+	    target = -extrapolate  
+	  elsif extrapolate > 480
+	    target = extrapolate - 480 
+	  else 
+	    target = extrapolate 
+	  end
+	  puts target
+	  return target	
+	end
 	def moveUp(message, tcp)
 		if(@@speed != -1.0) ## jos mennään jo ylös täyttä vauhtia niin ei muuteta mitään
 			if(countmessages(message['data']['time']))  # tarkistetaan 10 komentoa/sec
