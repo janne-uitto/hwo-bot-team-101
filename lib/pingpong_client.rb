@@ -10,6 +10,8 @@ module Pingpong
 	@@speed = 0
 	@@prevBallX = 0
 	@@target = 0
+	@@wins = 0
+	@@games = 0
 	Coordinates = Struct.new(:x,:y)
 	def initialize(player_name, server_host, server_port)
       tcp = TCPSocket.open(server_host, server_port)
@@ -34,7 +36,6 @@ module Pingpong
             puts '... game on!'
           when 'gameIsOn'
             #puts "\nChallenge from server: #{json}\n"
-			#puts @@speed
 			moveThresholdSlow = 5
 			moveThreshold = message['data']['conf']['paddleHeight']
 			if(directionIsLeft(message['data']['ball']['pos']['x']))
@@ -64,6 +65,12 @@ module Pingpong
 			else
 				moveStay(message, tcp)
 			end
+		when 'gameIsOver'
+		  @@games = @@games + 1
+		  @@wins = @@wins + 1 if message['data'] == ARGV[0]
+		  puts "Winner #{message['data']}!"
+		  puts "Wins: #{@@wins}/#{@@games}"
+		  @@speed = 0.01
 		else
 			puts "Undefined message"
 			@@speed = 0.01
@@ -123,8 +130,14 @@ module Pingpong
 	  end
 	  delta_x = @points[0].x - @points[1].x
 	  delta_y = @points[0].y - @points[1].y
-	  extrapolate = -(((delta_y*(@points[0].x - 10))/delta_x) - @points[0].y)
+	  #delta_x2 = @points[1].x - @points[2].x
+	  #delta_y2 = @points[1].y - @points[2].y
 	  
+	  #puts "deltax: #{delta_x}, deltay: #{delta_y}"
+	  #puts "deltax2: #{delta_x2}, deltay2: #{delta_y2}"
+	  
+	  
+	  extrapolate = -(((delta_y*(@points[0].x - 10))/delta_x) - @points[0].y)
 	  
 	  #puts extrapolate
 	  if extrapolate < 0
@@ -137,9 +150,8 @@ module Pingpong
 	  else 
 	    targettemp = extrapolate 
 	  end
-	  #unless(targettemp < @@target+50 || targettemp > @@target+50)
-	    @@target = targettemp
-	  #end
+	  
+	  @@target = targettemp
 	  
 	  puts "Target #{@@target}"
 	  return @@target	
