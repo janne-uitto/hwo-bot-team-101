@@ -41,17 +41,17 @@ module Pingpong
                         moveThresholdSlow = 5
                         moveThreshold = message['data']['conf']['paddleHeight']
 
-					    if ((message['data']['ball']['pos']['x'] > moveThreshold))# || (message['data']['ball']['pos']['x'] < message['data']['conf']['maxWidth'] - moveThreshold))    #ei lasketa uutta targettia jos liian lähellä
+					    if ((message['data']['ball']['pos']['x'] > moveThreshold) || (message['data']['ball']['pos']['x'] < message['data']['conf']['maxWidth'] - moveThreshold))    #ei lasketa uutta targettia jos liian lähellä
 						  if (directionIsLeft(message['data']['ball']['pos']['x']))
 							@newtarget = calculate_path(tcp, true)
 						  else
-							#@newtarget = calculate_path(tcp, false) # kommentoi tämä jos et halua että lasketaan targettia
+							@newtarget = calculate_path(tcp, false) # kommentoi tämä jos et halua että lasketaan targettia
 # tässä voidaan valita mitä tehdään kun mennään pois                                
 							# poista kommentit alta jos haluat että ei lasketa targettia
-							@newtarget = message['data']['conf']['maxHeight'] / 2
-							for i in 0..2 # nollataan taulukko jossa on kolme viimesintä targettia
-							    @@targetcounter[i] = 0 
-							end
+							#@newtarget = message['data']['conf']['maxHeight'] / 2
+							#for i in 0..2 # nollataan taulukko jossa on kolme viimesintä targettia
+							#    @@targetcounter[i] = 0 
+							#end
 						  end
 						  @@target = @newtarget
 						  #puts "Palautettu target #{@@target}"
@@ -151,7 +151,6 @@ module Pingpong
 				  break calculate_path(tcp, kohti)
 				else
 				  break calculate_path(tcp, kohti)
-				  #react_to_messages_from_server(tcp)
 				end
             end
             delta_x = @points[0].x - @points[1].x
@@ -163,9 +162,10 @@ module Pingpong
             #puts "deltax2: #{delta_x2}, deltay2: #{delta_y2}"
               
             if (kohti)
-                extrapolate = -(((delta_y*(@points[0].x - 10))/delta_x) - @points[0].y)
+                extrapolate = -(((delta_y*(@points[0].x - @paddleWidth))/delta_x) - @points[0].y)
             else
-                extrapolate = -2*(((delta_y*(@width-@points[0].x))/delta_x) - @points[0].y)
+				extrapolate = -(((delta_y*(@points[0].x - @paddleWidth * 2))/delta_x) - @points[0].y)
+                #extrapolate = -2*(((delta_y*(@width-@points[0].x))/delta_x) - @points[0].y)
             end
           
             #puts extrapolate
@@ -179,10 +179,12 @@ module Pingpong
                 targettemp = extrapolate + @height	# lisätään ruutu ( nyt ollaan pelialueela )
 				targettemp = @height - targettemp # ja peilataan se
                 targettemp = targettemp + 12	# lisätään seinästä kimpoamista
+				unless kohti then targettemp = targettemp + 12 end
             elsif extrapolate > @height	# jos ollaan alhaalta ohi
                 targettemp = extrapolate - @height # lisätään ruutu
                 targettemp = @height - targettemp	# peilataan
                 targettemp = targettemp - 12 		# seinästä kimpoaminen
+				unless kohti then targettemp = targettemp - 12 end
             else 
                 targettemp = extrapolate 	#ollaan jo peli alueella
             end
