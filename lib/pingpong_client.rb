@@ -54,11 +54,11 @@ module Pingpong
 							end
 						  end
 						  @@target = @newtarget
-						  puts "Palautettu target #{@@target}"
+						  #puts "Palautettu target #{@@target}"
 						  if (@@target < message['data']['conf']['paddleHeight'] / 2) # jos ollaan liian lähellä reunaa
-							@@target = message['data']['conf']['paddleHeight'] / 2 - moveThresholdSlow # korjataan targettia ettei maila bouncaa reunasta
+							@@target = moveThresholdSlow # korjataan targettia ettei maila bouncaa reunasta
 						  elsif(@@target > (message['data']['conf']['maxHeight'] - message['data']['conf']['paddleHeight'] / 2))
-							@@target = message['data']['conf']['maxHeight'] - message['data']['conf']['paddleHeight'] / 2  + moveThresholdSlow
+							@@target = message['data']['conf']['maxHeight'] - moveThresholdSlow
 						  end
 						  
 						else # jos ollaan oman mailan lähellä
@@ -165,7 +165,7 @@ module Pingpong
             if (kohti)
                 extrapolate = -(((delta_y*(@points[0].x - 10))/delta_x) - @points[0].y)
             else
-                extrapolate = -2*(((delta_y*(2*@width-@points[0].x))/delta_x) - @points[0].y)
+                extrapolate = -2*(((delta_y*(@width-@points[0].x))/delta_x) - @points[0].y)
             end
           
             #puts extrapolate
@@ -178,11 +178,11 @@ module Pingpong
             if extrapolate < 0 # jos ollaan ylhäältä ohi (tässä vaiheessa vain yhden ruudun)
                 targettemp = extrapolate + @height	# lisätään ruutu ( nyt ollaan pelialueela )
 				targettemp = @height - targettemp # ja peilataan se
-                targettemp = targettemp + 10	# lisätään seinästä kimpoamista
+                targettemp = targettemp + 12	# lisätään seinästä kimpoamista
             elsif extrapolate > @height	# jos ollaan alhaalta ohi
                 targettemp = extrapolate - @height # lisätään ruutu
                 targettemp = @height - targettemp	# peilataan
-                targettemp = targettemp - 10 		# seinästä kimpoaminen
+                targettemp = targettemp - 12 		# seinästä kimpoaminen
             else 
                 targettemp = extrapolate 	#ollaan jo peli alueella
             end
@@ -206,7 +206,7 @@ module Pingpong
           
             @@target = targettemp
           
-            #puts "Laskettu target #{@@target}"
+            puts "Laskettu target #{@@target}"
           
             @@targetcounter[0] = @@targetcounter[1]
             @@targetcounter[1] = @@targetcounter[2] # siirretään taulukon arvoja yhdellä
