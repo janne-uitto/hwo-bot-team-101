@@ -164,16 +164,19 @@ module Pingpong
             if (kohti)
                 extrapolate = -(((delta_y*(@points[0].x - @paddleWidth))/delta_x) - @points[0].y)
             else
-				extrapolate = -(((delta_y*(@points[0].x - @paddleWidth * 2))/delta_x) - @points[0].y)
+				extrapolate = -(((delta_y*(@points[0].x - (@width * 2) - @paddleWidth * 2))/delta_x) - @points[0].y)
                 #extrapolate = -2*(((delta_y*(@width-@points[0].x))/delta_x) - @points[0].y)
             end
           
-            #puts extrapolate
+			kaanto = 1
+            #puts "Extrapolate #{extrapolate}"
             while (extrapolate < -@height) # jos ollaan ylhäältä enemmän kuin yhden ruudun verran yli
                 extrapolate = extrapolate + @height # niin lisätään ruutuja kunnes ollaan yhden ruudun päässä
+				kaanto = kaanto * -1
             end
             while (extrapolate > 2 * @height) # jos ollaan alhaalta enemmän kuin yhden ruudun verran ali
                 extrapolate = extrapolate - @height # vähennetään kunnes ruudun päässä
+				kaanto = kaanto * -1
             end
             if extrapolate < 0 # jos ollaan ylhäältä ohi (tässä vaiheessa vain yhden ruudun)
                 targettemp = extrapolate + @height	# lisätään ruutu ( nyt ollaan pelialueela )
@@ -188,6 +191,10 @@ module Pingpong
             else 
                 targettemp = extrapolate 	#ollaan jo peli alueella
             end
+			
+			if ((kohti == false) && (kaanto < 0))
+			  targettemp = @height - targettemp
+			end
 			
 #			while (extrapolate < @height)
 #                extrapolate = extrapolate + 2 * @height
