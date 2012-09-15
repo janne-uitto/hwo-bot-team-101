@@ -10,6 +10,7 @@ module Pingpong
         @@targetcounter = [0,0,0]
         @@speed = 0
         @@prevBallX = 0
+		@@prevPaddleY = 0
         @@target = 0
         @@wins = 0
         @@games = 0
@@ -38,10 +39,10 @@ module Pingpong
                         puts '... game on!'
                     when 'gameIsOn'
                         #puts "\nChallenge from server: #{json}\n"
-                        moveThresholdSlow = 5
-                        moveThreshold = message['data']['conf']['paddleHeight']
+                        moveThresholdSlow = 3		# raja jonka sisällä ollaan paikallaan
+                        moveThreshold = message['data']['conf']['paddleHeight'] * 1.5 # raja jonka sisällä liikutaan hitaasti
 
-					    if ((message['data']['ball']['pos']['x'] > moveThreshold) || (message['data']['ball']['pos']['x'] < message['data']['conf']['maxWidth'] - moveThreshold))    #ei lasketa uutta targettia jos liian lähellä
+					    if ((message['data']['ball']['pos']['x'] > moveThreshold))# && (message['data']['ball']['pos']['x'] < message['data']['conf']['maxWidth'] - moveThreshold))    #ei lasketa uutta targettia jos liian lähellä
 						  if (directionIsLeft(message['data']['ball']['pos']['x']))
 							@newtarget = calculate_path(tcp, true)
 						  else
@@ -56,12 +57,12 @@ module Pingpong
 						  @@target = @newtarget
 						  #puts "Palautettu target #{@@target}"
 						  if (@@target < message['data']['conf']['paddleHeight'] / 2) # jos ollaan liian lähellä reunaa
-							@@target = moveThresholdSlow # korjataan targettia ettei maila bouncaa reunasta
+							@@target = message['data']['conf']['paddleHeight'] / 2 - moveThresholdSlow # korjataan targettia ettei maila bouncaa reunasta
 						  elsif(@@target > (message['data']['conf']['maxHeight'] - message['data']['conf']['paddleHeight'] / 2))
-							@@target = message['data']['conf']['maxHeight'] - moveThresholdSlow
+							@@target = message['data']['conf']['maxHeight'] - message['data']['conf']['paddleHeight'] / 2 + moveThresholdSlow
 						  end
 						  
-						else # jos ollaan oman mailan lähellä
+						else # jos ollaan oman/vastustajan mailan lähellä
 						  for i in 0..2 # nollataan taulukko jossa on kolme viimesintä targettia
 						    @@targetcounter[i] = 0 
 						  end
@@ -90,10 +91,13 @@ module Pingpong
         end
 		
 		def gameover(message)
+		  for i in 0..2
+			@@targetcounter[i] = 0 
+		  end
           @@games = @@games + 1
 		  if message['data'] == ARGV[0] then @@wins = @@wins + 1 end
 		  puts "Voittaja #{message['data']}!"
-		  puts "Voittoja/peleja: #{@@wins}/#{@@games}"
+		  puts "Voittoja/peleja: #{@@wins}/#{@@games}, #{(@@wins*1.0)/(@@games*1.0)*100} %"
 		  @@speed = 0.01
         end
         
@@ -128,6 +132,18 @@ module Pingpong
               @@prevBallX = currentX
               return false
             end
+        end
+		
+		def paddleMove(currentY)
+            if( currentY < @@prevPaddleY)
+              @@prevPaddleY = currentY
+              return -1 # ollaan menossa ylös
+            elsif( currentY > @@prevPaddleY)
+              @@prevPaddleY = currentY
+              return 1 # ollaan menossa alas
+            else
+			  return 0
+			end
         end
         
         def calculate_path(tcp, kohti)
@@ -196,23 +212,6 @@ module Pingpong
 			  targettemp = @height - targettemp
 			end
 			
-#			while (extrapolate < @height)
-#                extrapolate = extrapolate + 2 * @height
-#            end
-#            while (extrapolate > 2 * @height)
-#                extrapolate = extrapolate - 2 * @height
-#            end
-#            if extrapolate < 0
-#                targettemp = -extrapolate
-#                targettemp = targettemp * 1.05
-#            elsif extrapolate > @height
-#                targettemp = extrapolate - @height 
-#                targettemp = @height - targettemp
-#                targettemp = targettemp * 0.96
-#            else 
-#                targettemp = extrapolate 
-#            end
-          
             @@target = targettemp
           
             puts "Laskettu target #{@@target}"
@@ -257,12 +256,12 @@ module Pingpong
             end
         end
         
-        def moveUpSlow(message, tcp)
-            if(@@speed != -0.2)
+        def moveUpSlow(message, tcp) # jos nopeus muuttunut tai ollaan menossa alas (bounce)
+            if(@@speed != -0.3 || paddleMove(message['data']['left']['y']) > 0) 
                 if(countmessages(message['data']['time']))
                     puts "UpSlow"
-                    tcp.puts movement_message(-0.2)
-                    @@speed = -0.2
+                    tcp.puts movement_message(-0.3)
+                    @@speed = -0.3
                 end
             end
         end
@@ -277,12 +276,12 @@ module Pingpong
             end
         end
         
-        def moveDownSlow(message, tcp)
-            if(@@speed != 0.2)
+        def moveDownSlow(message, tcp) # jos nopeus muuttunut tai ollaan menossa ylös (bounce)
+            if(@@speed != 0.3 || paddleMove(message['data']['left']['y']) < 0)
                 if(countmessages(message['data']['time'])) 
                     puts "DownSlow"
-                    tcp.puts movement_message(0.2)
-                    @@speed = 0.2
+                    tcp.puts movement_message(0.3)
+                    @@speed = 0.3
                 end
             end
         end
